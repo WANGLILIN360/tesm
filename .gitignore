@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build artifacts
+.tesm_build/
+*.o
+*.cubin
+*.fatbin
+*.ptx
+
+# CUDA
+*.cu.o
+*.c.o
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Model checkpoints
+*.pt
+*.pth
+*.bin
+*.safetensors
+checkpoints/
+!experiments/checkpoints/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp
+tmp/
+temp/
