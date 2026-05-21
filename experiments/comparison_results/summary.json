@@ -1,0 +1,161 @@
+[
+  {
+    "framework": "tesm",
+    "epochs": 1,
+    "total_params": 8850272,
+    "train_losses": [
+      5.526216027577718
+    ],
+    "val_ppls": [
+      129.14753449001782
+    ],
+    "best_val_ppl": 129.14753449001782,
+    "best_epoch": 1,
+    "train_time": 84.111820936203,
+    "generation_results": [
+      {
+        "prompt": "人工智能",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "深度学习是",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "自然语言处理",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "机器学习模型",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "神经网络可以",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      }
+    ]
+  },
+  {
+    "framework": "mamba",
+    "epochs": 1,
+    "error": "cannot import name 'is_offline_mode' from 'huggingface_hub' (/opt/conda/lib/python3.10/site-packages/huggingface_hub/__init__.py)"
+  },
+  {
+    "framework": "transformer",
+    "epochs": 1,
+    "error": "cannot import name 'is_offline_mode' from 'huggingface_hub' (/opt/conda/lib/python3.10/site-packages/huggingface_hub/__init__.py)"
+  },
+  {
+    "framework": "tesm",
+    "epochs": 2,
+    "total_params": 8850272,
+    "train_losses": [
+      5.5305066697862415,
+      4.586571091334025
+    ],
+    "val_ppls": [
+      130.52114371603122,
+      86.57585330594954
+    ],
+    "best_val_ppl": 86.57585330594954,
+    "best_epoch": 2,
+    "train_time": 160.60261416435242,
+    "generation_results": [
+      {
+        "prompt": "人工智能",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "深度学习是",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "自然语言处理",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "机器学习模型",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "神经网络可以",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      }
+    ]
+  },
+  {
+    "framework": "mamba",
+    "epochs": 2,
+    "error": "cannot import name 'is_offline_mode' from 'huggingface_hub' (/opt/conda/lib/python3.10/site-packages/huggingface_hub/__init__.py)"
+  },
+  {
+    "framework": "transformer",
+    "epochs": 2,
+    "error": "cannot import name 'is_offline_mode' from 'huggingface_hub' (/opt/conda/lib/python3.10/site-packages/huggingface_hub/__init__.py)"
+  },
+  {
+    "framework": "tesm",
+    "epochs": 3,
+    "total_params": 8850272,
+    "train_losses": [
+      5.526487140231662,
+      4.599654925240411,
+      4.354920114941067
+    ],
+    "val_ppls": [
+      129.85972262139458,
+      87.40335315446109,
+      80.82465976120525
+    ],
+    "best_val_ppl": 80.82465976120525,
+    "best_epoch": 3,
+    "train_time": 188.91596269607544,
+    "generation_results": [
+      {
+        "prompt": "人工智能",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "深度学习是",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "自然语言处理",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "机器学习模型",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      },
+      {
+        "prompt": "神经网络可以",
+        "generated": "[生成失败: TESMLMHeadModel.generate() got an unexpected keyword argument 'eos_token_id']",
+        "new_tokens": 0
+      }
+    ]
+  },
+  {
+    "framework": "mamba",
+    "epochs": 3,
+    "error": "cannot import name 'is_offline_mode' from 'huggingface_hub' (/opt/conda/lib/python3.10/site-packages/huggingface_hub/__init__.py)"
+  },
+  {
+    "framework": "transformer",
+    "epochs": 3,
+    "error": "cannot import name 'is_offline_mode' from 'huggingface_hub' (/opt/conda/lib/python3.10/site-packages/huggingface_hub/__init__.py)"
+  }
+]
