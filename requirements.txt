@@ -1,0 +1,11 @@
+# TESM Dependencies
+# Core
+torch>=2.0.0
+
+# Optional: Triton kernels (inference acceleration)
+# triton>=2.1.0
+
+# Optional: Training utilities
+# einops>=0.6.0
+# transformers>=4.30.0
+# datasets>=2.14.0
