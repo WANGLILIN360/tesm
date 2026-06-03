@@ -10,7 +10,7 @@ def test_siso_backend_strict():
     print("测试 SISO (TESM) 后端严格模式")
     print("=" * 60)
     
-    from tesm_ssm.modules.tesm import TESM
+    from tesm_ssm.modules.tesm import TESM_SISO as TESM
     
     # 测试各种后端设置
     backends_to_test = ["auto", "torch", "cuda", "triton", "tilelang"]

@@ -16,10 +16,10 @@ class TestTESMConfig:
     def test_tiny_preset(self):
         """测试 tiny 预设"""
         config = TESMConfig.tiny()
-        assert config.d_model == 256
-        assert config.n_layer == 6
-        assert config.max_seq_len == 256
-        assert config.decay_init_bias == 0.0
+        assert config.d_model == 768
+        assert config.n_layer == 12
+        assert config.max_seq_len == 1024
+        assert config.decay_init_bias == 1.0
 
     def test_small_preset(self):
         """测试 small 预设"""

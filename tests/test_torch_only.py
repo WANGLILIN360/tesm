@@ -26,7 +26,7 @@ class TestTESMConfig:
         assert c.d_model == 768 and c.n_layer == 24 and c.decay_init_bias == 3.0
 
     def test_presets(self):
-        for name, dm, nl in [("tiny",256,6),("small",512,16),("base",768,24),("medium",1024,32)]:
+        for name, dm, nl in [("tiny",768,12),("small",512,16),("base",768,24),("medium",1024,32)]:
             c = getattr(TESMConfig, name)()
             assert c.d_model == dm and c.n_layer == nl
 

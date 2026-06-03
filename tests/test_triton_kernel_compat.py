@@ -1,11 +1,14 @@
 """
 测试 Triton kernel constexpr 与 tl.arange 兼容性
 """
+import pytest
 import torch
 
 def test_triton_kernel():
     print("测试 Triton kernel constexpr 与 tl.arange 兼容性")
     print("=" * 60)
+    
+    pytest.importorskip("triton", reason="Triton not installed (Linux-only)")
     
     if not torch.cuda.is_available():
         print("CUDA 不可用，跳过测试")

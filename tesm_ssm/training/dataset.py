@@ -30,9 +30,13 @@ class TextDataset(Dataset):
         self.max_seq_len = max_seq_len
         self.shuffle = shuffle
         
-        # 使用 datasets 库高效加载
+        # 使用 datasets 库高效加载，自动检测格式
         from datasets import load_dataset
-        self.samples = load_dataset('json', data_files=self.data_path, split='train')
+        suffix = Path(self.data_path).suffix.lower()
+        if suffix in ('.jsonl', '.json'):
+            self.samples = load_dataset('json', data_files=self.data_path, split='train')
+        else:
+            self.samples = load_dataset('text', data_files=self.data_path, split='train')
         
         # 获取 pad_token_id
         if hasattr(self.tokenizer, 'pad_token_id') and self.tokenizer.pad_token_id is not None:
@@ -56,8 +60,18 @@ class TextDataset(Dataset):
         text = str(sample.get('text', ''))
         
         # 分词 + 截断（不使用滑动窗口）
-        tokens = self.tokenizer(text, add_special_tokens=False, 
-                                max_length=self.max_seq_len - 2, truncation=True).input_ids
+        if callable(self.tokenizer) and hasattr(self.tokenizer, 'pad_token_id'):
+            # HuggingFace tokenizer
+            tokens = self.tokenizer(text, add_special_tokens=False, 
+                                    max_length=self.max_seq_len - 2, truncation=True).input_ids
+        else:
+            # SimpleTokenizer 或其他自定义 tokenizer
+            encode_fn = getattr(self.tokenizer, 'encode', None)
+            if encode_fn is not None:
+                tokens = encode_fn(text)
+            else:
+                tokens = self.tokenizer(text)
+            tokens = tokens[:self.max_seq_len - 2]
         
         # 添加 BOS / EOS
         bos_id = getattr(self.tokenizer, 'bos_token_id', None)
@@ -76,9 +90,13 @@ class TextDataset(Dataset):
         labels = input_ids.clone()
         labels[labels == self.pad_token_id] = -100
         
+        # Attention mask: pad 位置为 0，其余为 1
+        attention_mask = (input_ids != self.pad_token_id).long()
+        
         return {
             'input_ids': input_ids,
             'labels': labels,
+            'attention_mask': attention_mask,
         }
 
 
