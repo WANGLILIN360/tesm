@@ -326,11 +326,16 @@ class TESMTrainer:
         # 使用 HuggingFace tokenizer（或从 config 获取）
         tokenizer = getattr(self.config, 'tokenizer', None)
         if tokenizer is None:
-            from transformers import AutoTokenizer
-            tokenizer_path = getattr(self.config, 'tokenizer_path', 'gpt2')
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-            if tokenizer.pad_token_id is None:
-                tokenizer.pad_token_id = tokenizer.eos_token_id
+            try:
+                from transformers import AutoTokenizer
+                tokenizer_path = getattr(self.config, 'tokenizer_path', 'gpt2')
+                tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+                if tokenizer.pad_token_id is None:
+                    tokenizer.pad_token_id = tokenizer.eos_token_id
+            except Exception:
+                # 网络不可用时回退到 SimpleTokenizer
+                from .dataset import SimpleTokenizer
+                tokenizer = SimpleTokenizer()
         
         dataset = TextDataset(
             data_path=data_path,
