@@ -142,6 +142,11 @@ class TESMMIMO_Optimized(TESM_SISO):
         # 每个头的维度 (与 Mamba-3 一致: headdim = d_inner // nheads)
         self.d_inner = int(expand * d_model)
         self.d_head = self.d_inner // n_heads  # 每头维度
+        if self.d_inner % n_heads != 0:
+            import warnings
+            warnings.warn(f"d_inner ({self.d_inner}) is not divisible by n_heads ({n_heads}). "
+                         f"d_head will be truncated to {self.d_head}. "
+                         f"Consider using d_model such that (expand * d_model) % n_heads == 0")
         self.d_state_total = d_state * n_heads  # 总状态维度
         
         self.kernel_backend = kernel_backend

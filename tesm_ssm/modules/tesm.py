@@ -487,6 +487,16 @@ class TESM_SISO(nn.Module):
         self.d_model = d_model
         self.d_state = d_state
         self.expand = expand
+        
+        # 参数验证
+        if d_state <= 0:
+            raise ValueError(f"d_state must be positive, got {d_state}")
+        if d_model <= 0:
+            raise ValueError(f"d_model must be positive, got {d_model}")
+        if ent_rank <= 0:
+            raise ValueError(f"ent_rank must be positive, got {ent_rank}")
+        if max_seq_len <= 0:
+            raise ValueError(f"max_seq_len must be positive, got {max_seq_len}")
         self.ent_rank = ent_rank
         self.entanglement_scale = entanglement_scale
         self.entanglement_threshold = entanglement_threshold
@@ -599,6 +609,10 @@ class TESM_SISO(nn.Module):
             import math
             T = self.T_end + 0.5 * (self.T_start - self.T_end) * (1 + math.cos(math.pi * progress))
         else:
+            import warnings
+            warnings.warn(f"Unknown annealing_schedule '{self.annealing_schedule}', "
+                         f"falling back to constant T_start={self.T_start}. "
+                         f"Valid options: 'linear', 'exponential', 'cosine'")
             T = self.T_start
         
         return max(T, self.T_end)
@@ -1069,7 +1083,7 @@ class TESM_SISO(nn.Module):
             states: (B, L, D) - 每个时间步的状态
         """
         A = torch.cumprod(decay, dim=1)  # (B, L, D)
-        weighted_update = update / A.clamp_min(1e-30)  # (B, L, D)
+        weighted_update = update / A.clamp_min(1e-12)  # (B, L, D)
         cum_weighted = torch.cumsum(weighted_update, dim=1)  # (B, L, D)
         states = A * (h0.unsqueeze(1) + cum_weighted)  # (B, L, D)
         return states
@@ -1161,6 +1175,14 @@ class TESM_SISO(nn.Module):
     def forward(self, u, inference_params=None, cross_layer_state=None, prev_state=None, **kwargs):
         # 处理可能的额外参数（如从上层传递的labels等）
         batch, seqlen, _ = u.shape
+        
+        # 序列长度检查
+        if seqlen > self.max_seq_len:
+            raise ValueError(f"Sequence length {seqlen} exceeds max_seq_len {self.max_seq_len}")
+        
+        # 空序列检查
+        if seqlen == 0:
+            return u, None
         
         # 增量推理：如果是单 token 且有缓存，使用增量计算
         if inference_params is not None and seqlen == 1:

@@ -170,6 +170,8 @@ class MixerModel(nn.Module):
 
     def forward(self, input_ids, inference_params=None, prev_states=None, **mixer_kwargs):
         batch_size, seqlen = input_ids.shape
+        if seqlen == 0:
+            raise ValueError("Input sequence length is 0")
         if seqlen > self.config.max_seq_len:
             raise ValueError(f"Sequence length {seqlen} exceeds max_seq_len {self.config.max_seq_len}")
         # 增量推理时用正确的位置偏移, 而非始终从0开始
