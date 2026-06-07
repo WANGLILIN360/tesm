@@ -166,6 +166,25 @@ class TESMMultimodalModel(nn.Module):
         Returns:
             (TESMCausalLMOutput, final_states)
         """
+        # 检查至少有一个输入
+        if text_ids is None and images is None and audio is None:
+            raise ValueError(
+                "At least one of text_ids, images, or audio must be provided. "
+                "For text-only mode, use text_ids=torch.randint(...)."
+            )
+
+        # 检查模态是否启用
+        if images is not None and self.vision_embedder is None:
+            raise ValueError(
+                "Vision input provided but vision_embedder is not enabled. "
+                "Set vision_enabled=True in MultimodalConfig."
+            )
+        if audio is not None and self.audio_embedder is None:
+            raise ValueError(
+                "Audio input provided but audio_embedder is not enabled. "
+                "Set audio_enabled=True in MultimodalConfig."
+            )
+
         embeds_list = []
         modality_ids_list = []
 
