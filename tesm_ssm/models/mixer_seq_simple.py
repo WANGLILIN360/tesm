@@ -168,33 +168,50 @@ class MixerModel(nn.Module):
     def allocate_inference_cache(self, batch_size, max_seqlen, dtype=None, **kwargs):
         return {i: layer.allocate_inference_cache(batch_size, max_seqlen, dtype=dtype, **kwargs) for i, layer in enumerate(self.layers)}
 
-    def forward(self, input_ids, inference_params=None, prev_states=None, **mixer_kwargs):
-        batch_size, seqlen = input_ids.shape
+    def _get_position_embeddings(self, batch_size, seqlen, device, pos_offset=0):
+        """获取位置编码"""
+        positions = torch.arange(pos_offset, pos_offset + seqlen, device=device).unsqueeze(0).expand(batch_size, -1)
+        return self.position_embedding(positions)
+
+    def forward_with_embeds(self, inputs_embeds, inference_params=None, prev_states=None, **mixer_kwargs):
+        """使用预计算的 embeddings 进行前向传播
+
+        用于多模态场景，绕过 embedding 层。
+
+        Args:
+            inputs_embeds: (B, L, D) pre-computed embeddings
+            inference_params: 增量推理参数
+            prev_states: 前一层状态
+
+        Returns:
+            (hidden_states, entanglement_maps, entanglement_stats, final_states)
+        """
+        batch_size, seqlen, _ = inputs_embeds.shape
         if seqlen == 0:
             raise ValueError("Input sequence length is 0")
         if seqlen > self.config.max_seq_len:
             raise ValueError(f"Sequence length {seqlen} exceeds max_seq_len {self.config.max_seq_len}")
-        # 增量推理时用正确的位置偏移, 而非始终从0开始
+
         pos_offset = 0
         if inference_params is not None and seqlen == 1 and 'state_cache' in inference_params:
             layer0_cache = inference_params['state_cache'].get(0)
             if layer0_cache is not None and 'seq_pos' in layer0_cache:
                 pos_offset = layer0_cache['seq_pos']
-        positions = torch.arange(pos_offset, pos_offset + seqlen, device=input_ids.device).unsqueeze(0).expand(batch_size, -1)
-        hidden_states = self.embedding(input_ids) + self.position_embedding(positions)
+        pos_emb = self._get_position_embeddings(batch_size, seqlen, inputs_embeds.device, pos_offset)
+        hidden_states = inputs_embeds + pos_emb
+        return self._forward_layers(hidden_states, inference_params, prev_states, **mixer_kwargs)
+
+    def _forward_layers(self, hidden_states, inference_params=None, prev_states=None, **mixer_kwargs):
+        """层前向传播的核心逻辑"""
         residual = None
         entanglement_maps = []
         entanglement_stats = []
-        cross_layer_state = None  # 跨层纠缠状态通道
-        final_states = []  # 收集每层最终状态用于分块训练
+        cross_layer_state = None
+        final_states = []
         for i, layer in enumerate(self.layers):
-            # 获取该层的初始状态（分块训练用）
             layer_prev_state = prev_states[i] if prev_states is not None else None
-            # 构建含跨层状态的 mixer_kwargs
             layer_mixer_kwargs = dict(mixer_kwargs, cross_layer_state=cross_layer_state)
             if self.gradient_checkpointing and self.training and inference_params is None:
-                # Gradient checkpointing: 需要在 checkpoint 后立即收集统计
-                # 因为 checkpoint 会重算 forward，buffer 会被更新
                 if residual is None:
                     hidden_states, residual, final_state = checkpoint(
                         lambda hs, _layer=layer, _kw=layer_mixer_kwargs, _ps=layer_prev_state: _layer(hs, None, inference_params=None, prev_state=_ps, **_kw),
@@ -208,27 +225,22 @@ class MixerModel(nn.Module):
                         residual,
                         use_reentrant=False,
                     )
-                # Checkpoint 后立即收集统计（此时 buffer 已被更新）
                 if hasattr(layer.mixer, "_stats_ternary_buffer") and layer.mixer._stats_ternary_buffer is not None:
                     ternary = layer.mixer._stats_ternary_buffer
                     total = layer.mixer._stats_total_buffer.item() if layer.mixer._stats_total_buffer is not None else 1.0
                     entanglement_stats.append((ternary, total))
             else:
-                # 为每层传递其专属缓存
                 layer_inference_params = None
                 if inference_params is not None and 'state_cache' in inference_params:
                     layer_cache = inference_params['state_cache'].get(i)
                     if layer_cache is not None:
                         layer_inference_params = {'state_cache': layer_cache}
                 hidden_states, residual, final_state = layer(hidden_states, residual, inference_params=layer_inference_params, prev_state=layer_prev_state, **layer_mixer_kwargs)
-            # 保存最终状态
             if final_state is not None:
                 final_states.append(final_state)
-            # 读取该层产出的跨层状态，传给下一层
             cross_layer_state = getattr(layer.mixer, '_last_cross_layer_state', None)
             if hasattr(layer.mixer, "last_entanglement_map") and layer.mixer.last_entanglement_map is not None:
                 entanglement_maps.append(layer.mixer.last_entanglement_map)
-            # 优先使用 buffer (gradient checkpointing 安全)，其次用临时存储
             if hasattr(layer.mixer, "_stats_ternary_buffer") and layer.mixer._stats_ternary_buffer is not None:
                 ternary = layer.mixer._stats_ternary_buffer
                 total = layer.mixer._stats_total_buffer.item() if layer.mixer._stats_total_buffer is not None else 1.0
@@ -240,6 +252,21 @@ class MixerModel(nn.Module):
         residual = (hidden_states + residual) if residual is not None else hidden_states
         hidden_states = self.norm_f(residual.to(dtype=self.norm_f.weight.dtype))
         return hidden_states, entanglement_maps, _merge_stats(entanglement_stats), final_states
+
+    def forward(self, input_ids, inference_params=None, prev_states=None, **mixer_kwargs):
+        batch_size, seqlen = input_ids.shape
+        if seqlen == 0:
+            raise ValueError("Input sequence length is 0")
+        if seqlen > self.config.max_seq_len:
+            raise ValueError(f"Sequence length {seqlen} exceeds max_seq_len {self.config.max_seq_len}")
+        pos_offset = 0
+        if inference_params is not None and seqlen == 1 and 'state_cache' in inference_params:
+            layer0_cache = inference_params['state_cache'].get(0)
+            if layer0_cache is not None and 'seq_pos' in layer0_cache:
+                pos_offset = layer0_cache['seq_pos']
+        positions = torch.arange(pos_offset, pos_offset + seqlen, device=input_ids.device).unsqueeze(0).expand(batch_size, -1)
+        hidden_states = self.embedding(input_ids) + self.position_embedding(positions)
+        return self._forward_layers(hidden_states, inference_params, prev_states, **mixer_kwargs)
 
 
 class TESMLMHeadModel(nn.Module):
@@ -287,15 +314,31 @@ class TESMLMHeadModel(nn.Module):
         if self.tesm_config.tie_embeddings:
             self.lm_head.weight = value.weight
 
-    def forward(self, input_ids: torch.Tensor, labels: Optional[torch.Tensor] = None, inference_params: Optional[dict] = None, prev_states=None, logits_to_keep: int = 0, sparse_logits: bool = False, **kwargs):
+    def forward(self, input_ids: torch.Tensor = None, inputs_embeds: torch.Tensor = None, labels: Optional[torch.Tensor] = None, inference_params: Optional[dict] = None, prev_states=None, logits_to_keep: int = 0, sparse_logits: bool = False, **kwargs):
         """前向传播
         
         Args:
-            sparse_logits: 是否使用稀疏logits计算（只计算激活token，减少计算量）
+            input_ids: (B, L) token IDs，与 inputs_embeds 二选一
+            inputs_embeds: (B, L, D) pre-computed embeddings，与 input_ids 二选一
+            labels: (B, L) 训练标签
+            sparse_logits: 是否使用稀疏logits计算
         """
+        # 参数校验
+        if (input_ids is None and inputs_embeds is None) or (input_ids is not None and inputs_embeds is not None):
+            raise ValueError("Must provide exactly one of input_ids or inputs_embeds")
+        
         for k in ["attention_mask", "past_key_values", "use_cache"]:
             kwargs.pop(k, None)
-        hidden_states, entanglement_maps, entanglement_stats, final_states = self.backbone(input_ids=input_ids, inference_params=inference_params, prev_states=prev_states, **kwargs)
+        
+        # 选择输入方式
+        if inputs_embeds is not None:
+            hidden_states, entanglement_maps, entanglement_stats, final_states = self.backbone.forward_with_embeds(
+                inputs_embeds=inputs_embeds, inference_params=inference_params, prev_states=prev_states, **kwargs
+            )
+        else:
+            hidden_states, entanglement_maps, entanglement_stats, final_states = self.backbone(
+                input_ids=input_ids, inference_params=inference_params, prev_states=prev_states, **kwargs
+            )
         slice_indices = slice(-logits_to_keep, None) if isinstance(logits_to_keep, int) and logits_to_keep > 0 else slice(None)
         hidden_slice = hidden_states[:, slice_indices, :]
         
